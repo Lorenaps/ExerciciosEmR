@@ -1,0 +1,45 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+theme_set(theme_bw())
+
+```
+### Olhando as funções principais deo Dplyr
+
+```{r}
+
+starwars
+
+glimpse(starwars)
+
+starwars %>% select(name)
+
+select(starwars, mass, gender)
+
+select(filter(starwars, mass > 130), name:mass, homeworld)
+
+starwars %>% filter(mass > 1000) %>% select(name, birth_year) 
+
+starwars %>% 
+  mutate(altura_metros = height/100, IMC = mass/(altura_metros^2)) %>%
+  select(name, IMC, altura_metros, species) %>%
+  arrange(-IMC) %>%
+  group_by(species) %>%
+  summarise(mean(altura_metros), mean(IMC))
+```
+### Dicas sobre boxplots
+```{r}
+
+```
+
+
