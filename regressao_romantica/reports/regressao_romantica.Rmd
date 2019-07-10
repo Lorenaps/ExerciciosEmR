@@ -1,0 +1,120 @@
+---
+title: "Regressão Romântica"
+author: "Lorena Pereira"
+date: "9 de julho de 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(GGally)
+library(skimr)
+library(pscl)
+library(broom)
+library(tidyverse)
+library(modelr) # devtools::install_github("hadley/modelr")
+```
+
+# Atividade
+
+Utilizar regressão logística em um conjunto de variáveis para entender que fatores nos dados têm efeito relevante na chance do casal ter um match? Descrevendo se os efeitos são positivos ou negativos e sua magnitude. 
+
+# "The context, give me the context!"
+
+Encontros relâmpagos ou speed dating são eventos onde várias pessoas solteiras conversam por 4 minutos e por fim decidem se saíriam novamente com as pessoas que conversaram ou não. Um Tinder presencial... A partir disso
+
+> Temos dados descrevendo 5000 encontros relâmpagos de 4 minutos envolvendo 310 jovens americanos. Os dados originais foram coletados por professores da Columbia Business School [no experimento descrito aqui](http://faculty.chicagobooth.edu/emir.kamenica/documents/genderDifferences.pdf).
+
+E nesses dados temos informações como:
+
+- iid : id do participante p1 no encontro
+- gender : sexo do p1, 0 = mulher
+- order : dos vários encontros realizados em uma noite, esse foi o n-ésimo, segundo essa variável
+- pid : id do participante p2
+- int_corr : correlação entre os interesses de p1 e p2
+- samerace : p1 e p2 são da mesma raça?
+- age_o : idade de p2
+- age : idade de p1
+- field : campo de estudo de p1
+- race : raça de p1. O código é Black/African American=1; European/Caucasian-American=2; Latino/Hispanic American=3; Asian/Pacific Islander/Asian-American=4;	Native American=5; 	Other=6
+- from : de onde p1 é
+- career : que carreira p1 quer seguir
+- sports, tvsports, exercise, dining, museums, art, hiking, gaming, clubbing, reading, tv, theater, movies, concerts, music, shopping, yoga : De 1 a 10, quão interessado p1 é em cada uma dessas atividades.  
+- attr : quão atraente p1 achou p2
+- sinc : quão sincero p1 achou p2
+- intel : quão inteligente p1 achou p2    
+- fun : quão divertido p1 achou p2
+- amb : quão ambicioso p1 achou p2
+- shar : quanto p1 achou que compartilha interesses e hobbies com p2
+- like : no geral, quanto p1 gostou de p2?
+- prob : que probabiliade p1 acha que p2 tem de querer se encontrar novamente com p- (escala 1-10)
+- attr3_s : quanto p1 acha que é atraente
+- sinc3_s : quanto p1 acha que é sincero
+- intel3_s : quanto p1 acha que é inteligente
+- fun3_s : quanto p1 acha que é divertido
+- amb3_s : quanto p1 acha que é ambicioso
+- dec: se houve match entre os dois participantes do encontro
+
+Mãos a obra! 
+
+# Análise
+
+##  Descritivo dos dados
+
+```{r}
+dados <- read_csv("../dados/speed-dating2.csv") %>% 
+  mutate(dec = as.factor(dec), 
+         gender = as.factor(gender),
+         diff_age = abs(age_o - age))
+
+skim(dados)
+```
+
+A fim de facilitar um possível entendimento dos fatores de maior sucesso nos matchs vamos diminuir o escopo para os seguintes campos: 
+
+- **shar**: Será que os opostos se atraem mesmo?
+- **diff_age** (diferença de idades entre p1 e p2, calculada a partir dos campos existente): E como a diferença de idade pode intervir nisso? 
+- **intel**: Inteligência conta?
+- **fun**: Ser divertido com certeza... Né? Bom, vamos ver!
+
+Como já sabemos quais dados vamos investigar, vamos tentar visualizar uma correlação entre eles. Mas primeiro vamos retirar os resgistros com valores nulos.
+
+```{r}
+dados <- dados %>%
+  select(shar, diff_age, intel, fun, dec)
+
+dados <- na.omit(dados)
+
+skim(dados)
+```
+
+Visualizando correlação
+
+```{r}
+
+ggpairs(dados %>% select(shar, diff_age, intel, fun))
+```
+
+Gerando o modelo:
+
+```{r}
+
+match_model = glm(dec ~ shar + diff_age + intel + fun,
+                        data = dados,
+                        family = "binomial")
+
+tidy(match_model, conf.int = TRUE, exponentiate = TRUE, conf.level = .95)
+```
+
+Todas as variáveis tiveram efeito positivo no modelo. Mas considerando sua magnitude as que mais se destacaram foram: O quanto se considera a pessoa divertida obtendo 1,45 com 95% CI [1,38;	1,53], e o quanto se acredita compartilhar interesses com a pessoa obtendo 1,38 com 95% CI [1,32; 1,44]. Os demais atributos de diferença de idade que obteve 0,98 com 95% CI [0,95; 1,00] e inteligencia que obteve 0,91 com 95% CI [0,86; 0,96] tiveram um desempenho menos impactante no modelo.
+
+
+```{r}
+pR2(match_model)
+```
+
+Analisando o modelo considerando o pseudo R2 de McFadden vemos que o nosso modelo explica 17% dos nossos dados. 
+Ou seja no nosso modelo ser divertido é o que mais importa, já ser inteligente nem tanto, mas ainda não temos um poder de explicação tão grande entre os matchs.
+
+
+
